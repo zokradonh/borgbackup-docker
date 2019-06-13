@@ -6,6 +6,35 @@ Backups all docker volumes while automatically detecting [mariadb](https://hub.d
 This image uses [Borg](https://www.borgbackup.org/) to backup plain data volumes and mariabackup exports. A Borg backup server is
 required.
 
+Usage
+===
+Copy `docker-compose.yml` from repository and create `docker-compose.override.yml`:
+```
+version: '3'
+
+services:
+  cronservice:
+    volumes:
+      - /root/.ssh/backup_id_rsa:/root/.ssh/id_rsa
+    environment:
+      - BORG_REMOTE_URL=ssh://user@host:22/path/to/backups/ 
+      - BORG_PASSPHRASE=<some-random-password>
+      - BORG_RSH=ssh -oStrictHostKeyChecking=no
+      - BORG_PRUNE_RULES=--keep-daily 14 --keep-monthly 10
+```
+
+You can see the host bind `backup_id_rsa`. This file should contain your private key for pubkey authentication to the borg backup
+server via SSH, if using SSH.
+
+You could also alter `docker-compose.yml` from repository and add all values from above instead of
+creating `docker-compose.override.yml`.
+
+Create and start the container by `docker-compose up -d`.
+Initiate the borg backup repository by `docker-compose exec cronservice backup-init`.
+As mentioned in the warning you should backup the volume `config` of your docker compose project, otherwise all backups are lost,
+due to encryption.
+The backups starts 2:59 AM daily.
+
 Volume Labels
 ====
 
