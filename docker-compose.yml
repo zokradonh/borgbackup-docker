@@ -2,7 +2,7 @@ version: '3'
 
 services:
   cronservice:
-    build: .
+    image: zokradonh/borgbackup-docker
     restart: unless-stopped
     volumes:
       - /var/lib/docker/volumes:/hostvolumes
