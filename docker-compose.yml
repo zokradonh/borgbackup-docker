@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  cronservice:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/volumes:/hostvolumes
+      - /var/run/docker.sock:/var/run/docker.sock
+      - config:/borgconfig
+      - backups:/backups
+
+volumes:
+  backups:
+  config:
+    labels:
+      - xyz.zok.borgbackup.ignore
