@@ -39,7 +39,7 @@ Volume Labels
 ====
 
 LabelName | Description
---- | --- | ---
+--- | ---
 xyz.zok.borgbackup.ignore | This volume will not be included in any backup
 xyz.zok.borgbackup.whitelist | This volume will be backed up if the Borg backup container is in whitelist-only mode (not implemented)
 
