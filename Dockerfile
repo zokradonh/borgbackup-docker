@@ -1,15 +1,15 @@
-FROM ubuntu:bionic
+FROM ubuntu:disco
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         borgbackup \
         cron \
-        dumb-init \
+        tini \
         curl \
         ca-certificates \
         jq \
-        mariadb-client \
+        mariadb-backup \
         openssh-client && \
         rm -rf /var/cache/apt /var/lib/apt/lists
 
@@ -37,6 +37,6 @@ VOLUME /borgconfig
 # ENV BORG_REMOTE_URL # borg URL of the server including remote path
 # ENV BORG_PASSPHRASE # for passphrase encryption  
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+ENTRYPOINT ["/sbin/tini", "-e", "143", "--"]
 
 CMD ["cron", "-f"]
