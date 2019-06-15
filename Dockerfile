@@ -37,6 +37,6 @@ VOLUME /borgconfig
 # ENV BORG_REMOTE_URL # borg URL of the server including remote path
 # ENV BORG_PASSPHRASE # for passphrase encryption  
 
-ENTRYPOINT ["/sbin/tini", "-e", "143", "--"]
+ENTRYPOINT ["/usr/bin/tini", "-e", "143", "--"]
 
 CMD ["cron", "-f"]
