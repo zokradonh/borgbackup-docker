@@ -51,6 +51,6 @@ Environment Variables
 EnvVar | Example | Description
 --- | --- | ---
 BORG_REMOTE_URL | ssh://user@host:22/path/to/backups/ | Connection URL accepted by Borg
-BORG_PASSPHRASE | random-string | Passphrase that encrypts the encryption keys that encrypt the backups.
+BORG_PASSPHRASE | random-string | Passphrase that encrypts the encryption keys which encrypt the backups.
 BORG_RSH | ssh -oStrictHostKeyChecking=no | SSH invoke. You should provide example value to accept the ssh fingerprint, if using ssh:// remote URL
 BORG_PRUNE_RULES | --keep-daily 14 --keep-monthly 10 | Borg prune rules. See Borg doc.
