@@ -12,8 +12,8 @@ function find_data_volume {
 }
 
 docker ps -a --no-trunc --format "{{ .ID }}" | xargs -i docker inspect {}  > /tmp/allcontainer
-databaseContainers=$( jq -r '.[] | select(.Config.Image == "mariadb") | .Id' < /tmp/allcontainer )
-databaseVolumes=$( jq -r '.[] | select(.Config.Image == "mariadb") | .Mounts[].Name' < /tmp/allcontainer )
+databaseContainers=$( jq -r '.[] | . as $c | .Config.Image | select(test("^mariadb:?")) | $c | .Id' < /tmp/allcontainer )
+databaseVolumes=$( jq -r '.[] | . as $c | .Config.Image | select(test("^mariadb:?")) | $c | .Mounts[].Name' < /tmp/allcontainer )
 
 echo "Found the following database volumes: $databaseVolumes"
 
