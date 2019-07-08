@@ -47,6 +47,13 @@ create an empty file called `.xyz.zok.borgbackup.ignore` in the parent directory
   ---- .xyz.zok.borgbackup.ignore
 ```
 
+Volumes of this image
+====
+Volume | Description
+--- | ---
+backups | All the incremental database backups are saved in this volume. Must be persistent due to incremental nature.
+config | Configuration of borg itself including encryption keys. You cannot upload this to your backup server if you do not trust it.
+
 Volume Labels
 ====
 

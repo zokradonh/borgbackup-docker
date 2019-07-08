@@ -12,6 +12,8 @@ services:
 
 volumes:
   backups:
+    labels:
+      - xyz.zok.borgbackup.ignore
   config:
     labels:
       - xyz.zok.borgbackup.ignore
