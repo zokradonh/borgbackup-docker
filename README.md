@@ -35,6 +35,18 @@ As mentioned in the warning you should backup the volume `config` of your docker
 due to encryption.
 The backups starts 2:59 AM daily.
 
+How to exclude a volume from backup
+====
+Either set the a label `xyz.zok.borgbackup.ignore` for the volume (which is not possible if the volume is already created) or 
+create an empty file called `.xyz.zok.borgbackup.ignore` in the parent directory of the volume.
+```
+/var/lib/docker/volumes/
+  -- my_volume_to_ignore/
+  ---- _data/
+  ------ <all the data of the volume>
+  ---- .xyz.zok.borgbackup.ignore
+```
+
 Volume Labels
 ====
 

@@ -19,6 +19,15 @@ echo "Found the following database volumes: $databaseVolumes"
 
 ignoredVolumes=$( docker volume ls --format "{{ .Name }}" --filter=label=xyz.zok.borgbackup.ignore )
 
+for vol in $( docker volume ls --format "{{ .Name }}")
+do
+    if [ -f "$VOLUME_PATH/$vol/.xyz.zok.borgbackup.ignore" ]
+    then
+        ignoredVolumes+=$'\n'
+        ignoredVolumes+="$vol"
+    fi
+done
+
 # get data volumes folders
 foldersToBackup=$( comm -3 <(docker volume ls --format "{{ .Name }}") <(sort <(echo "$databaseVolumes") <(echo "$ignoredVolumes") | uniq) | awk '{print "'$VOLUME_PATH'/" $0}' | tr '\n' ' ' )
 
