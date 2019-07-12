@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. /borg_env.sh
+
 set -eu
 
 VOLUME_PATH="/hostvolumes"

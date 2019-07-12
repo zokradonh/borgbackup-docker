@@ -21,13 +21,13 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
   && rm docker-${DOCKERVERSION}.tgz
 
 # copy scripts
-COPY backup.sh init.sh /backupscripts/
+COPY backup.sh init.sh start-container.sh /backupscripts/
 
 RUN ln -s /backupscripts/backup.sh /usr/local/bin/backup && \
     ln -s /backupscripts/init.sh /usr/local/bin/init-backup && \
-    touch /var/log/cron.log && \
+    mkfifo /var/log/cron.fifo && \
     chmod a+x /backupscripts/*.sh && \
-    echo "59 2 * * * backup > /dev/stdout 2>&1" | crontab -
+    echo "59 2 * * * /backupscripts/backup.sh >/var/log/cron.fifo 2>/var/log/cron.fifo" | crontab -
 
 ENV BORG_BASE_DIR=/borgconfig
 
@@ -39,4 +39,4 @@ VOLUME /borgconfig
 
 ENTRYPOINT ["/usr/bin/tini", "-e", "143", "--"]
 
-CMD ["cron", "-f"]
+CMD ["/backupscripts/start-container.sh"]
