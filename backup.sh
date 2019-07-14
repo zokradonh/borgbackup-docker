@@ -6,6 +6,7 @@ set -eu
 
 VOLUME_PATH="/hostvolumes"
 BACKUPPATH="/backups"
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 function find_data_volume {
     containerName=$1
