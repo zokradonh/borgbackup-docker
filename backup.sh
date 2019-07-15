@@ -78,7 +78,7 @@ echo "Found folders to backup: $foldersToBackup"
 set -x
 # upload backups
 # shellcheck disable=SC2086
-borg create --stats "${BORG_REMOTE_URL}::'{now}'" $foldersToBackup
+borg create --stats "${BORG_REMOTE_URL}::{now}" $foldersToBackup
 # shellcheck disable=SC2086
 borg prune -v --list $BORG_PRUNE_RULES "${BORG_REMOTE_URL}"
 set +x
