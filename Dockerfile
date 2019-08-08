@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tini \
         curl \
         ca-certificates \
+        git \
         jq \
         mariadb-backup \
         openssh-client && \
