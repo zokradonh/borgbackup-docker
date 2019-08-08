@@ -16,6 +16,7 @@ services:
   cronservice:
     volumes:
       - /root/.ssh/backup_id_rsa:/root/.ssh/id_rsa
+      - /etc/compose:/hostprojects
     environment:
       - BORG_REMOTE_URL=ssh://user@host:22/path/to/backups/ 
       - BORG_PASSPHRASE=<some-random-password>
@@ -24,7 +25,8 @@ services:
 ```
 
 You can see the host bind `backup_id_rsa`. This file should contain your private key for pubkey authentication to the borg backup
-server via SSH, if using SSH.
+server via SSH, if using SSH. Furthermore you can mount a directory full of docker-compose git repositories (optional).
+Those will be backuped too as git bundles.
 
 You could also alter `docker-compose.yml` from repository and add all values from above instead of
 creating `docker-compose.override.yml`.
@@ -53,6 +55,7 @@ Volume | Description
 --- | ---
 backups | All the incremental database backups are saved in this volume. Must be persistent due to incremental nature.
 config | Configuration of borg itself including encryption keys. You cannot upload this to your backup server if you do not trust it.
+/hostprojects | (optional) Mount your directory that contains all the docker compose projects under git version control. E.g. /etc/compose:/hostprojects
 
 Volume Labels
 ====

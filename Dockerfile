@@ -21,9 +21,10 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
   && rm docker-${DOCKERVERSION}.tgz
 
 # copy scripts
-COPY backup.sh init.sh start-container.sh /backupscripts/
+COPY backup.sh restore.sh init.sh start-container.sh /backupscripts/
 
 RUN ln -s /backupscripts/backup.sh /usr/local/bin/backup && \
+    ln -s /backupscripts/restore.sh /usr/local/bin/restore && \
     ln -s /backupscripts/init.sh /usr/local/bin/init-backup && \
     mkfifo /var/log/cron.fifo && \
     chmod a+x /backupscripts/*.sh && \
