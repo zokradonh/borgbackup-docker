@@ -26,6 +26,7 @@ function bundle_git {
     then
         echo "Creating git bundle for repository $gitDirectory"
         git -C "$gitDirectory" bundle create "$outputDir/$( basename $gitDirectory ).gitbundle" master
+        echo "Size: $( stat --printf='%s' $outputDir/$( basename $gitDirectory ).gitbundle | numfmt --to=iec --format='%.1f' )"
     else
         echo "Warning: Project $gitDirectory is not a git repository."
     fi
@@ -36,8 +37,6 @@ export -f bundle_git
 docker ps -a --no-trunc --format "{{ .ID }}" | xargs -i docker inspect {}  > /tmp/allcontainer
 databaseContainers=$( jq -r '.[] | . as $c | .Config.Image | select(test("^mariadb:?")) | $c | .Id' < /tmp/allcontainer )
 databaseVolumes=$( jq -r '.[] | . as $c | .Config.Image | select(test("^mariadb:?")) | $c | .Mounts[].Name' < /tmp/allcontainer )
-
-echo "Found the following database volumes: $databaseVolumes"
 
 ignoredVolumes=$( docker volume ls --format "{{ .Name }}" --filter=label=xyz.zok.borgbackup.ignore )
 
@@ -57,6 +56,9 @@ foldersToBackup=$( comm -3 <(docker volume ls --format "{{ .Name }}") <(sort <(e
 find "$PROJECTS_PATH" -maxdepth 1 -mindepth 1 -type d -exec bash -c 'bundle_git "$0" "$1"' {} "$PROJECT_BUNDLE_PATH" \;
 
 foldersToBackup="$foldersToBackup $PROJECT_BUNDLE_PATH"
+
+echo "Found the following database volumes:"
+echo "$databaseVolumes"
 
 # dump databases
 for container in $databaseContainers
@@ -80,6 +82,7 @@ do
         docker exec "$container" sh -c \
             "mariabackup --backup --stream=xbstream --user=root --"'password=$MYSQL_ROOT_PASSWORD' 2> /dev/null \
             | mbstream -x -C "$BACKUPPATH/$dataVolume/inc.0"
+        echo "Size: $( du -sh $BACKUPPATH/$dataVolume/inc.0 )"
     else
         # incremental backup of this database
         # find last incremental backup if any
@@ -92,6 +95,8 @@ do
         docker exec "$container" sh -c \
             "mariabackup --backup --incremental-lsn=$lastToLsn --stream=xbstream --user=root --"'password=$MYSQL_ROOT_PASSWORD' 2> /dev/null \
             | mbstream -x -C "$BACKUPPATH/$dataVolume/inc.$next"
+
+        echo "Size: $( du -sh $BACKUPPATH/$dataVolume/inc.$next )"
     fi
     # append database backup to folders list
     foldersToBackup="$foldersToBackup $BACKUPPATH/$dataVolume"
