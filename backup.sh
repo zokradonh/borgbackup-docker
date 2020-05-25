@@ -80,9 +80,13 @@ do
         mkdir -p "$BACKUPPATH/$dataVolume/inc.0"
         echo "Create first full database backup of $containerName..."
         docker exec "$container" sh -c \
-            "mariabackup --backup --stream=xbstream --user=root --"'password=$MYSQL_ROOT_PASSWORD' 2> /dev/null \
+            "mariabackup --backup --stream=xbstream --user=root --"'password=$MYSQL_ROOT_PASSWORD' 2> /var/tmp/lastmberror \
             | mbstream -x -C "$BACKUPPATH/$dataVolume/inc.0"
         echo "Size: $( du -sh $BACKUPPATH/$dataVolume/inc.0 )"
+        if ! rmdir "$BACKUPPATH/$dataVolume/inc.0" ; then # fails if backup succeded. Removing directory to retry again next time.
+            echo "Failed backup. Either container has no MYSQL_ROOT_PASSWORD or other error. Log:"
+            cat /var/tmp/lastmberror
+        fi
     else
         # incremental backup of this database
         # find last incremental backup if any
