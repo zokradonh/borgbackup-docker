@@ -4,8 +4,13 @@
 cron
 
 # Preserve environment variables for cron tasks
-printenv | sed --regexp-extended 's/^([^=]*)=(.*)$/export \1="\2"/g' | grep -E "^export BORG" > /borg_env.sh
-chmod a+x /borg_env.sh
+jq -n env > borg_parameters.json
+
+# create project git repo export dir
+mkdir -p /bundles
+
+# write fingerprint
+echo $SSH_HOST_FINGERPRINT > /root/.ssh/known_hosts
 
 # Redirect cron task output to stdout
 exec tail -f /var/log/cron.fifo

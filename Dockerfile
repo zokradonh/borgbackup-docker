@@ -11,8 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         jq \
         mariadb-backup \
-        openssh-client && \
+        openssh-client \
+        python3-pip \
+        && \
         rm -rf /var/cache/apt /var/lib/apt/lists
+
+RUN pip3 install docker
 
 # download docker cli binary
 ENV DOCKERVERSION=18.06.3-ce
@@ -26,22 +30,20 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
   && rm docker-${DOCKERVERSION}.tgz
 
 # copy scripts
-COPY backup.sh restore.sh init.sh start-container.sh /backupscripts/
+COPY backup.py restore.sh init.sh start-container.sh /backupscripts/
 
-RUN ln -s /backupscripts/backup.sh /usr/local/bin/backup && \
+RUN ln -s /backupscripts/backup.py /usr/local/bin/backup && \
     ln -s /backupscripts/restore.sh /usr/local/bin/restore && \
     ln -s /backupscripts/init.sh /usr/local/bin/init-backup && \
     mkfifo /var/log/cron.fifo && \
     chmod a+x /backupscripts/*.sh && \
-    echo "59 2 * * * /backupscripts/backup.sh >/var/log/cron.fifo 2>/var/log/cron.fifo" | crontab -
+    chmod a+x /backupscripts/*.py 
+    && \
+    echo "59 2 * * * /backupscripts/backup.py >/var/log/cron.fifo 2>/var/log/cron.fifo" | crontab -
 
 ENV BORG_BASE_DIR=/borgconfig
 
 VOLUME /borgconfig
-
-# mount /root/.ssh/id_rsa with ssh key for borg server
-# ENV BORG_REMOTE_URL # borg URL of the server including remote path
-# ENV BORG_PASSPHRASE # for passphrase encryption  
 
 ENTRYPOINT ["/usr/bin/tini", "-e", "143", "--"]
 
