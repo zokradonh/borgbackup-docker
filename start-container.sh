@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Run cron in daemon mode
-cron
-
 # Preserve environment variables for cron tasks
 jq -n env > borg_parameters.json
 
@@ -12,5 +9,8 @@ mkdir -p /bundles
 # write fingerprint
 echo $SSH_HOST_FINGERPRINT > /root/.ssh/known_hosts
 
-# Redirect cron task output to stdout
-exec tail -f /var/log/cron.fifo
+# prepare stdout pipe for cronjobs
+ln -sf /proc/$$/fd/1 /var/log/output
+
+# run cron
+exec cron -f
