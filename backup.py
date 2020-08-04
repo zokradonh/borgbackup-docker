@@ -230,10 +230,15 @@ print(f"Found folders to backup:")
 print(json.dumps(sorted(folders_to_backup), indent=4))
 print(f"Number of folders: {len(folders_to_backup)}.")
 
+# prepare environment for borg commands
+for env, value in borg_parameters.items():
+    if env.startswith("BORG_"):
+        os.environ[env] = value
+
 # upload backups
-creation = run(["borg", "create", "--stats", f"{borg_parameters['BORG_REMOTE_URL']}::{{now}}"] + folders_to_backup)
+creation = run(["borg", "create", "--stats", "::{now}"] + folders_to_backup)
 if creation.returncode > 0:
-    print("NO BACKUP CREATED. BORG Collective failed to assimilate biological entity.")
+    print(f"NO BACKUP CREATED. BORG Collective failed to assimilate biological entity. (Exitcode: {creation.returncode})")
 
 # prune old backups
-run(["borg", "prune", "-v", "--list"] + borg_parameters["BORG_PRUNE_RULES"].split(" ") + [borg_parameters['BORG_REMOTE_URL']])
+run(["borg", "prune", "-v", "--list"] + borg_parameters["BORG_PRUNE_RULES"].split(" ") + ["::"])
