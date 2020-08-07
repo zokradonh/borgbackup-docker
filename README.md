@@ -19,10 +19,12 @@ services:
       - /root/.ssh/backup_id_rsa:/root/.ssh/id_rsa
       - /etc/compose:/hostprojects
     environment:
+      - TZ=Europe/Berlin
       - BORG_REPO=ssh://user@example.net:22/path/to/backups/ 
       - BORG_PASSPHRASE=<some-random-password>
       - BORG_PRUNE_RULES=--keep-daily 14 --keep-monthly 10
       - SSH_HOST_FINGERPRINT=[example.net]:22 ssh-ed25519 ABCDEFGHIJKLMNOPQRSTUVWXYZ
+      - CRON_INTERVAL_INCREMENTAL=59 2 * * *
 ```
 
 The host binds `backup_id_rsa`. This file should contain your private key for pubkey authentication to the borg backup
@@ -37,7 +39,7 @@ Create and start the container by `docker-compose up -d`.
 Initiate the borg backup repository by `docker-compose exec cronservice backup-init`.
 As mentioned in the warning you should backup the volume `config` of your docker compose project, otherwise all backups are lost,
 due to encryption.
-The backups starts 2:59 AM daily.
+In default settings backups start at 2:59 AM daily. You can adjust with environment variable `CRON_INTERVAL_INCREMENTAL`.
 
 How to exclude a volume from backup
 ====
@@ -77,5 +79,7 @@ BORG_REPO | ssh://user@host:22/path/to/backups/ | (Original Borg variable) Conne
 BORG_PASSPHRASE | random-string | (Original Borg variable) Passphrase that encrypts the encryption keys which encrypt the backups.
 BORG_PRUNE_RULES | --keep-daily 14 --keep-monthly 10 | Borg prune rules. See `borg prune` [arguments](https://borgbackup.readthedocs.io/en/stable/usage/prune.html).
 SSH_HOST_FINGERPRINT | [example.net]:22 pubkey | Format of `.ssh/known_hosts`.
+CRON_INTERVAL_INCREMENTAL | 00 2 * * * | Interval format of [crontab](https://help.ubuntu.com/community/CronHowto)
+TZ | Europe/Berlin | Your [time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
 
 Every environment variable starting with `BORG_` will be passed to the Borg process.

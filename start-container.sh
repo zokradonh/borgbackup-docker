@@ -13,5 +13,10 @@ echo $SSH_HOST_FINGERPRINT > /root/.ssh/known_hosts
 ln -sf /proc/$$/fd/1 /var/log/output
 ln -sf /proc/$$/fd/2 /var/log/errors
 
+# install cronjobs
+crontab -r &>/dev/null
+echo "$CRON_INTERVAL_INCREMENTAL /backupscripts/backup.py >/var/log/output 2>/var/log/errors" | crontab -
+echo "Installed incremental backup cronjob."
+
 # run cron
 exec cron -f

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         mariadb-backup \
         openssh-client \
         python3-pip \
+        tzdata \
         && \
         rm -rf /var/cache/apt /var/lib/apt/lists
 
@@ -36,10 +37,10 @@ RUN ln -s /backupscripts/backup.py /usr/local/bin/backup && \
     ln -s /backupscripts/restore.sh /usr/local/bin/restore && \
     ln -s /backupscripts/init.sh /usr/local/bin/init-backup && \
     chmod a+x /backupscripts/*.sh && \
-    chmod a+x /backupscripts/*.py && \
-    echo "59 2 * * * /backupscripts/backup.py >/var/log/output 2>/var/log/errors" | crontab -
+    chmod a+x /backupscripts/*.py
 
 ENV BORG_BASE_DIR=/borgconfig
+ENV CRON_INTERVAL_INCREMENTAL="59 2 * * *"
 
 VOLUME /borgconfig
 
