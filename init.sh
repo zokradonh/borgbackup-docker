@@ -8,7 +8,7 @@ then
     exit 1
 fi
 
-borg init --encryption=keyfile-blake2 "${BORG_REMOTE_URL}"
+borg init --encryption=keyfile-blake2 "${BORG_REPO}"
 
 
 echo "####################################################"

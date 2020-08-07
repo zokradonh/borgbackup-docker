@@ -37,7 +37,7 @@ RUN ln -s /backupscripts/backup.py /usr/local/bin/backup && \
     ln -s /backupscripts/init.sh /usr/local/bin/init-backup && \
     chmod a+x /backupscripts/*.sh && \
     chmod a+x /backupscripts/*.py && \
-    echo "59 2 * * * /backupscripts/backup.py >/var/log/output 2>/var/log/output" | crontab -
+    echo "59 2 * * * /backupscripts/backup.py >/var/log/output 2>/var/log/errors" | crontab -
 
 ENV BORG_BASE_DIR=/borgconfig
 

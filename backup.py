@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -u
 
 import docker
 import os
@@ -6,6 +6,8 @@ import subprocess
 import re
 import datetime
 import json
+import sys
+import argparse
 
 from subprocess import run, CalledProcessError
 
@@ -19,6 +21,11 @@ projects_output_path = Path("/bundles")
 client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
 borg_parameters = json.loads(Path("/borg_parameters.json").read_text())
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--dry", action="store_true", help="make dry run. Don't change anything")
+args = parser.parse_args()
+
 
 # code from borgbackup
 def sizeof_fmt(num, suffix='B', units=None, power=None, sep='', precision=2, sign=False):
@@ -55,15 +62,18 @@ def create_git_bundle(git_directory, output_directory):
         print(f"Creating git bundle for repository {git_directory.name}...")
         try:
             output_filename = output_directory / f"{git_directory.name}.gitbundle"
-            run(["git", "-C", git_directory, "bundle", "create", output_filename, "master"], capture_output=True, check=True)
-            print(f" Success, size: {sizeof_fmt_decimal(output_filename.stat().st_size)}")
+            if not args.dry:
+                run(["git", "-C", git_directory, "bundle", "create", output_filename, "master"], capture_output=True, check=True)
+                print(f"  Success, size: {sizeof_fmt_decimal(output_filename.stat().st_size)}")
+            else:
+                print("  Doing nothing due to dry run.")
         except CalledProcessError as ex:
-            print(f" Failed to create git bundle of project '{git_directory.name}' (Returncode {ex.returncode}).")
+            print(f"  Failed to create git bundle of project '{git_directory.name}' (Returncode {ex.returncode}).", file=sys.stderr)
             print(ex.cmd)
             print(ex.stdout)
             print(ex.stderr)
     else:
-        print(f"Warning: Project {git_directory.name} is not a git repository.")
+        print(f"Warning: Project {git_directory.name} is not a git repository.", file=sys.stderr)
 
 
 def get_ignored_volumes(all_volumes, volumes_path):
@@ -83,11 +93,11 @@ def archive_all_compose_projects():
 def create_database_backup(db, outputpath, backup_number, incremental_lsn=0):
     exitcode, versionstring = db.exec_run("mariabackup --version")
     if exitcode != 0:
-        print(f" ERROR: Database container {db.name} does not support 'mariabackup'!")
+        print(f"  ERROR: Database container {db.name} does not support 'mariabackup'!", file=sys.stderr)
         return False
 
     versionstring = re.sub(r'\s*$', '', versionstring.decode('utf-8'))
-    print(f" Using {versionstring}")
+    print(f"  Using {versionstring}")
 
     cmd = f'sh -c "mariabackup --backup {f"--incremental-lsn={incremental_lsn}" if backup_number > 0 else ""} --stream=xbstream --user=root --password=$MYSQL_ROOT_PASSWORD"'
 
@@ -115,17 +125,17 @@ def create_database_backup(db, outputpath, backup_number, incremental_lsn=0):
             if not any((outputpath / f"inc.{backup_number}").iterdir()):
                 (outputpath / f"inc.{backup_number}").rmdir() # existence of directory inc.0 is indicator whether we need to make an initial backup or incremental backup
                 if incremental_lsn == 0:
-                    print(f" Failed initial backup. Either container has no MYSQL_ROOT_PASSWORD or other error. (See errors above, if any or {logfile})")
+                    print(f"  Failed initial backup. Either container has no MYSQL_ROOT_PASSWORD or other error. (See errors above, if any or {logfile})", file=sys.stderr)
                 else:
-                    print(f" Failed backup number {backup_number}. Either container has no MYSQL_ROOT_PASSWORD or other error. (See errors above, if any, or {logfile})")
+                    print(f"  Failed backup number {backup_number}. Either container has no MYSQL_ROOT_PASSWORD or other error. (See errors above, if any, or {logfile})", file=sys.stderr)
                 return False
 
             # check log file
             if b"completed OK!" not in backuplog:
-                print(f" WARNING: Missing success message in mariabackup log. See {logfile}.")
+                print(f"  WARNING: Missing success message in mariabackup log. See {logfile}.", file=sys.stderr)
 
             # print success message
-            print(" Size: {}".format(sizeof_fmt_decimal(sum(f.stat().st_size for f in (outputpath / f"inc.{backup_number}").glob('**/*') if f.is_file()))))
+            print("  Size: {}".format(sizeof_fmt_decimal(sum(f.stat().st_size for f in (outputpath / f"inc.{backup_number}").glob('**/*') if f.is_file()))))
             return True
 
 def verify_database_container(db):
@@ -152,13 +162,13 @@ folders_to_backup.append(str(projects_output_path))
 
 # create incremental database backups
 print("Found database containers:")
-print(json.dumps(sorted([c.name for c in database_containers]), indent=4))
+print(json.dumps(sorted([c.name for c in database_containers]), indent=2))
 
 for db in database_containers:
     
     # get database volume
     if (dbvolume := get_db_data_volume(db)) is None:
-        print(f"ERROR: Database container {db.name} has no volume mount to '/var/lib/mysql'!")
+        print(f"ERROR: Database container {db.name} has no volume mount to '/var/lib/mysql'!", file=sys.stderr)
         continue
     volume_name = dbvolume.name
 
@@ -166,13 +176,18 @@ for db in database_containers:
 
     if not (dbpath / "inc.0").exists():
         # first backup of this database
-        (dbpath / "inc.0").mkdir(parents=True)
+        if not args.dry:
+            (dbpath / "inc.0").mkdir(parents=True)
 
         try:
             print(f"Create first full database backup of {db.name} (Volume: {volume_name})...")
-            create_database_backup(db, dbpath, 0)
+            if args.dry:
+                print("  Doing nothing due to dry run.")
+            else:
+                create_database_backup(db, dbpath, 0)
         except:
-            (dbpath / "inc.0").rmdir()
+            if not args.dry:
+                (dbpath / "inc.0").rmdir()
 
     else:
         # incremental backup of this database
@@ -198,11 +213,13 @@ for db in database_containers:
                 break; # last backup looks good, continue making the incremental backup
             except:
                 if last_incremental_number == 0:
-                    print(f"ERROR: Unable to create incremental backup on failed initial backup of {db.name}!")
+                    print(f"ERROR: Unable to create incremental backup on failed initial backup of {db.name}!", file=sys.stderr)
                     raise Exception
                     break
                 else:
-                    print(f"ERROR: Backup number {last_incremental_number} of {db.name} is invalid.")
+                    print(f"ERROR: Backup number {last_incremental_number} of {db.name} is invalid.", file=sys.stderr)
+                    if args.dry:
+                        raise Exception
                     print(f"Auto-Resolving by deactivating failed incremental backup {last_incremental_number}.") 
                     if not any((dbpath / f"inc.{last_incremental_number}").iterdir()):
                         (dbpath / f"inc.{last_incremental_number}").rmdir() # delete backup if there is no data
@@ -214,21 +231,29 @@ for db in database_containers:
 
         next_incremental_number = last_incremental_number + 1
 
-        (dbpath / f"inc.{next_incremental_number}").mkdir(parents=True)
+        if not args.dry:
+            (dbpath / f"inc.{next_incremental_number}").mkdir(parents=True)
         try:
             print(f"Create incremental database backup number {next_incremental_number} (from-LSN: {last_to_lsn}) of {db.name} (Volume: {volume_name})...")
-            create_database_backup(db, dbpath, next_incremental_number, last_to_lsn)
+            if args.dry:
+                print("  Doing nothing due to dry run.")
+            else:
+                create_database_backup(db, dbpath, next_incremental_number, last_to_lsn)
         except Exception as e:
-            print(f"Failed to backup {db.name}. Error:")
-            #print(e)
-            (dbpath / f"inc.{next_incremental_number}").rmdir()
+            print(f"Failed to backup {db.name}. Error:", file=sys.stderr)
+            if not args.dry:
+                (dbpath / f"inc.{next_incremental_number}").rmdir()
             raise
 
-    folders_to_backup.append(str(database_output_path / dbpath))
+    folders_to_backup.append(str(dbpath))
 
 print(f"Found folders to backup:")
-print(json.dumps(sorted(folders_to_backup), indent=4))
+print(json.dumps(sorted(folders_to_backup), indent=2))
 print(f"Number of folders: {len(folders_to_backup)}.")
+
+# stop here in dry run mode
+if args.dry:
+    sys.exit(0)
 
 # prepare environment for borg commands
 for env, value in borg_parameters.items():
@@ -238,7 +263,7 @@ for env, value in borg_parameters.items():
 # upload backups
 creation = run(["borg", "create", "--stats", "::{now}"] + folders_to_backup)
 if creation.returncode > 0:
-    print(f"NO BACKUP CREATED. BORG Collective failed to assimilate biological entity. (Exitcode: {creation.returncode})")
+    print(f"NO BACKUP CREATED. BORG Collective failed to assimilate biological entity. (Exitcode: {creation.returncode})", file=sys.stderr)
 
 # prune old backups
 run(["borg", "prune", "-v", "--list"] + borg_parameters["BORG_PRUNE_RULES"].split(" ") + ["::"])
