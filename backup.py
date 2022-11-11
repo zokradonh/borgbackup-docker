@@ -140,7 +140,7 @@ def create_database_backup(db, outputpath, backup_number, incremental_lsn=0):
 
 def verify_database_container(db):
     for env in db.attrs["Config"]["Env"]:
-        if env.startswith("MARIADB_MAJOR=") and db.status == "running":
+        if (env.startswith("MARIADB_MAJOR=") or env.startswith("MARIADB_VERSION=")) and db.status == "running":
             return True
     return False
 
